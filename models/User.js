@@ -7,6 +7,7 @@ const userSchema = new Schema({
     lastName: String,
     email: { type : String , unique : true, required: true },
     password: { type : String , required: true },
+    party:[{ type: Schema.Types.ObjectId, ref: 'Party' }]
 
 });
 

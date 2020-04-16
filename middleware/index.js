@@ -1,4 +1,4 @@
-import {signUpValidator, loginValidator} from './validations';
+import {signUpValidator, loginValidator, partyValidator} from './validations';
 import Authorize from './authorization';
 
 
@@ -6,5 +6,6 @@ import Authorize from './authorization';
 export {
     loginValidator,
     signUpValidator,
+    partyValidator,
     Authorize
 }

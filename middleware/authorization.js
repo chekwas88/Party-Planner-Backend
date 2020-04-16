@@ -33,7 +33,7 @@ class Authorize {
         error: 'No authorization is provided',
       });
     }
-    const token = req.headers.authorization.split(' ');
+    const token = req.headers.authorization;
     return jwt.verify(token, process.env.SECRET_KEY, (err, decoded) => {
       if (err) {
         return res.status(401).json({
