@@ -17,10 +17,6 @@ app.use(cors());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
-console.log('devuser',process.env.devPassword)
-
-
-
 app.use(routes);
 
 // catch 404 and forward to error handler

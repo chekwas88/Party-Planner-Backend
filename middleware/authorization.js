@@ -47,6 +47,27 @@ class Authorize {
   }
 
    /**
+   * Acknowledges user tokens
+   * @param {object} req
+   * @param {object} res
+   * @param {function} next
+   * @returns {void}
+   */
+  static acknowledgeToken(req, res, next) {
+    if (!req.headers.authorization) {
+      return next();
+    }
+    const token = req.headers.authorization;
+    return jwt.verify(token, process.env.SECRET_KEY, (err, decoded) => {
+      if (err) {
+        return next();
+      }
+      req.user = decoded;
+      return next();
+    });
+  }
+
+   /**
    * encrypts users' password
    * @function encryptPassword
    * @param {string} password
