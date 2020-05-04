@@ -4,10 +4,14 @@ const signUpValidator = [
   body('firstName')
     .notEmpty()
     .withMessage('firstName should not be empty')
+    .isString()
+    .withMessage('firstName should be a string')
     .trim(),
   body('lastName')
         .notEmpty()
         .withMessage('lastName should not be empty')
+        .isString()
+        .withMessage('lastName should be a string')
         .trim(),
   body('email')
     .isEmail()
