@@ -1,6 +1,6 @@
 import {Party, User} from '../../models';
-import {Authorize} from '../../middleware';
-
+import mongoose from'mongoose';
+import removeDuplicates from '../../helper/formatObj';
 /**
  *  user Authentication controller
  */
@@ -18,9 +18,8 @@ class MyEvent {
             const user = await User.findById(id);
             if(user) {
                 const {body} = req;
-                const expenditure = body.expense.reduce((cum, exp) => cum + exp.amount, 0)
-                console.log("exp", expenditure)
-                const partyEvent = new Party({...body, total_expense:expenditure, owner: user._id});
+                const expenditure = body.expense.reduce((cum, exp) => cum + exp.amount, 0);
+                const partyEvent = new Party({...body, total_expense:expenditure, owner: user._id, created_at: Date.now(), update_at: Date.now()});
                 partyEvent.save();
                 const {
                     id,
@@ -33,10 +32,12 @@ class MyEvent {
                     owner,
                     budget,
                     expense,
+                    created_at,
                     total_expense,
                     
                 } = partyEvent;
-                return res.status(200).json({
+                // console.log(partyEvent)
+                return res.status(204).json({
                     status: res.statusCode,
                     message: 'Party created successfully',
                     id,
@@ -50,7 +51,8 @@ class MyEvent {
                     budget,
                     expense,
                     total_expense,
-                    private: partyEvent.private
+                    private: partyEvent.private,
+                    created_at: new Date(created_at).toDateString(),
                     
                 });
             }
@@ -69,7 +71,7 @@ class MyEvent {
    * get a party
    * @param {object} req
    *  @param {object} res
-   * @returns {object} created party
+   * @returns {object} party
    */
     static async getParty(req, res){
         const {id} = req.params;
@@ -115,6 +117,71 @@ class MyEvent {
         }
    
    } 
+
+    /**
+     * get all parties
+     * @param {object} req
+     *  @param {object} res
+     * @returns {Array} all parties
+     */
+    static async getParties(req, res) {
+            
+        const userId = req.user ? req.user.id : null;
+        try {
+            const user = await User.findById(userId);
+            
+            // const publicParties = parties.filter(party => party.private === false);
+            
+            if(!user){
+                const publicParties = await Party.find({private: {$eq: false}}).populate({
+                    path: 'owner',
+                    select: 'firstName email lastName'
+                });
+                return res.status(200).json({
+                    status: res.statusCode,
+                    count: publicParties.length,
+                    message: 'success',
+                    parties: publicParties,
+                })
+            }
+            if(user){
+                const userId = mongoose.Types.ObjectId(user.id);
+                const parties  = await Promise.all([
+                    Party.find({private: false}).populate({
+                        path: 'owner',
+                        select: 'firstName email lastName'
+                    }).sort({ created_at: 'desc'}),
+                    Party.find({owner:{_id:userId }}).populate({
+                        path: 'owner',
+                        select: 'firstName email lastName'
+                    }).sort({ created_at: 'desc'})
+                  ]).then( ([ all, userParties ]) => {
+                        return [...all, ...userParties];
+                  });
+                  const results = removeDuplicates(parties, 'id')
+                  return res.status(200).json({
+                    status: res.statusCode,
+                    count: results.length,
+                    message: 'success',
+                    parties: results,
+                })
+                
+            }
+               
+            
+            return res.status(404).json({
+                status: res.statusCode,
+                message: 'not found',
+                parties: []
+            })
+            
+        }catch(e){
+            console.log(e);
+            throw new Error('Problem getting this resource')
+        }
+
+
+    }
 
 }
 
