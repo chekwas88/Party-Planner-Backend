@@ -36,7 +36,7 @@ const partyValidator = [
     .withMessage('invalid input type. private should be a boolean value'),
 
     body('budget')
-    .isNumeric()
+    .isDecimal()
     .withMessage('budget should be a number'),
 
     body('expense')
