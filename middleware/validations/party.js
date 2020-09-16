@@ -25,7 +25,7 @@ const partyValidator = [
         .withMessage('date should be a string'),
 
     body('time')
-    .notEmpty()
+        .notEmpty()
         .withMessage('time should not be empty ')
         .isString()
         .withMessage('time should be a string'),
