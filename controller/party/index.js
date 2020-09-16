@@ -1,6 +1,5 @@
-import {Party, User} from '../../models';
-import mongoose from'mongoose';
-import {removeDuplicates, getUser} from '../../helper';
+import {Party, User} from '@/models';
+import {removeDuplicates, getUser} from '@helpers';
 /**
  *  user Authentication controller
  */
@@ -15,51 +14,18 @@ class MyEvent {
     static async createParty(req, res){
         const {id} = req.user;
         try{
-            const user = await User.findById(id);
+            const user = await User.findById(id).exec();
             if(user) {
                 const {body} = req;
                 const expenditure = body.expense.reduce((cum, exp) => cum + exp.amount, 0);
-                const partyEvent = new Party({...body, total_expense:expenditure, owner: user._id, created_at: Date.now(), update_at: Date.now()});
-                partyEvent.save();
-                const {
-                    id,
-                    name,
-                    venue,
-                    description,
-                    date,
-                    time,
-                    theme,
-                    owner,
-                    budget,
-                    expense,
-                    created_at,
-                    total_expense,
-                    
-                } = partyEvent;
-                // console.log(partyEvent)
-                return res.status(204).json({
+                const partyEvent = await Party.create({...body, total_expense:expenditure, owner: user._id, created_at: Date.now(), update_at: Date.now()});
+                return res.status(201).json({
                     status: res.statusCode,
+                    id: partyEvent._id,
                     message: 'Party created successfully',
-                    id,
-                    name,
-                    venue,
-                    owner,
-                    description,
-                    date: new Date(date).toDateString(),
-                    time,
-                    theme,
-                    budget,
-                    expense,
-                    total_expense,
-                    private: partyEvent.private,
-                    created_at: new Date(created_at).toDateString(),
                     
                 });
             }
-            return res.status(401).json({
-                status: res.statusCode,
-                message: 'You are not authorize to create this resource'
-            });
         }catch(e){
             throw new Error('Problem creating a party')
         }
@@ -77,12 +43,16 @@ class MyEvent {
         const {id} = req.params;
         
         const userId = req.user ? req.user.id : null;
+        
         try {
-            const user = await User.findById(userId);
+            const user = await User.findById(userId).exec();
+            console.log("ID from con", req.user);
+            console.log("user from con", user);
             const party = await Party.findById(id).populate({
                 path: 'owner',
                 select: 'firstName email lastName'
-            });
+            }).exec();
+            console.log("party from con", party);
             if(party){
                 if(!party.private){
                     return res.status(200).json({
@@ -103,12 +73,12 @@ class MyEvent {
                 }
                 return res.status(401).json({
                     status: res.statusCode,
-                    message: 'Unauthorized',
+                    error: 'Unauthorized to view this resource',
                 })
             }
             return res.status(404).json({
                 status: res.statusCode,
-                message: 'not found',
+                error: 'not found',
             })
             
         }catch(e){
@@ -143,7 +113,6 @@ class MyEvent {
                 })
             }
             if(user){
-                const userId = mongoose.Types.ObjectId(user.id);
                 const parties  = await Promise.all([
                     Party.find({private: false}).populate({
                         path: 'owner',
@@ -167,12 +136,6 @@ class MyEvent {
                 
             }
                
-            
-            return res.status(404).json({
-                status: res.statusCode,
-                message: 'not found',
-                parties: []
-            })
             
         }catch(e){
             console.log(e);
@@ -201,7 +164,7 @@ class MyEvent {
             if(!party){
                 return  res.status(404).json({
                     status: res.statusCode,
-                    message: 'not found'
+                    error: 'not found'
                 })
             }
             if((user && party) && (user.id === party.owner.id)){
@@ -211,9 +174,9 @@ class MyEvent {
                     message: 'Party deleted Successfully'
                 })
             }
-            return  res.status(403).json({
+            return  res.status(401).json({
                 status: res.statusCode,
-                message: 'You are not authorized to perform this action'
+                error: 'You are not authorized to perform this action'
             })
         }catch(e){
             console.log(e);
@@ -238,7 +201,13 @@ class MyEvent {
             path: 'owner',
             select: 'firstName email lastName id'
         });
-        if((user && party) && (user.id === party.owner.id)) {
+        if(!party){
+            return res.status(404).json({
+                status: res.statusCode,
+                error: 'not found'
+            });
+        }
+        if(user && (user.id === party.owner.id)) {
             const {body} = req;
             const updated = {
                 name: body.name || party.name ,
@@ -254,7 +223,7 @@ class MyEvent {
             const expenditure = updated.expense.reduce((cum, exp) => cum + exp.amount, 0);
             const result = await Party.updateOne({_id: id}, {...updated, total_expense: expenditure, updated_at: Date.now()})
            
-            return res.status(204).json({
+            return res.status(201).json({
                 status: res.statusCode,
                 message: 'Party updated successfully',
                 modified: result.nModified
@@ -263,7 +232,7 @@ class MyEvent {
         }
         return res.status(401).json({
             status: res.statusCode,
-            message: 'You are not authorize to update this resource'
+            error: 'You are not authorize to update this resource'
         });
     }catch(e){
         throw new Error('Problem creating a party')

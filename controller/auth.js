@@ -1,5 +1,4 @@
-import {User} from '../models';
-import {Authorize} from '../middleware';
+import {User} from '@/models';
 
 /**
  *  user Authentication controller
@@ -17,22 +16,20 @@ class UserAuth {
         const user = await User.findOne({email});
 
         if(user) {
-            return res.status(400).json({
-                status: 400,
+            return res.status(401).json({
+                status: res.statusCode,
                 error: 'This user already exists',
               });
         }
-        const encrypt = Authorize.encryptPassword(password);
-        let result =  new User({firstName, lastName, email, password: encrypt });
-        await result.save();
-        const {id} = result
-        const token = Authorize.generateToken({id})
+        let newUser =  await User.create({firstName, lastName, email, password });
+        const {id} = newUser
+        const token = newUser.generateToken();
         return res.status(201).json({
             status: res.statusCode,
             id,
-            firstName: result.firstName,
-            lastName: result.lastName,
-            email: result.email,
+            firstName: newUser.firstName,
+            lastName: newUser.lastName,
+            email: newUser.email,
             token,
             message: 'signup was successful'
         });
@@ -48,28 +45,29 @@ class UserAuth {
         const {email, password} = req.body
 
         const user = await User.findOne({email});
-        if(!user) {
-            return res.status(400).json({
+        const failedLogin = () => {
+            
+            return res.status(401).json({
                 status: res.statusCode,
-                message: 'invalid email/password'
+                error: 'invalid email/password'
             })
         }
-        const {id} = user;
-        const result = Authorize.comparePassword(password, user.password);
-        const token = Authorize.generateToken({id})
-        if(result) {
-            return res.status(201).json({
+        if(!user) {
+            return failedLogin()
+        }
+        const isCorrectPaasword = user.comparePassword(password);
+        const token = user.generateToken()
+        if(isCorrectPaasword) {
+            return res.status(200).json({
+                status: res.statusCode,
                 firstName: user.firstName,
                 lastName: user.lastName,
                 email: user.email,
                 token,
-                message: 'login was sucessful'
+                message: 'login was successful'
             })
         }
-        return res.status(401).json({
-            status: res.statusCode,
-            message: 'invalid email/password'
-        })
+        return failedLogin();
     }
 }
 
